@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeuroFlow Pro v0.9</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        /* --- CORE UI RESET --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #020202; 
+            color: #e2e8f0; 
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* --- LAYOUT SYSTEM --- */
+        #sidebar {
+            display: none;
+            width: 280px;
+            height: 100%;
+            background: #080808;
+            border-right: 1px solid #1e293b;
+            flex-direction: column;
+            padding: 2rem;
+            z-index: 50;
+        }
+
+        #mobile-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(8, 8, 8, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid #1e293b;
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+            justify-content: space-around;
+            padding-top: 0.5rem;
+        }
+
+        #main-container {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #000000 60%);
+        }
+
+        #content {
+            flex: 1;
+            overflow-y: auto; 
+            position: relative;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (min-width: 768px) {
+            #sidebar { display: flex; }
+            #mobile-nav { display: none; }
+            .view-wrapper {
+                max-width: 1000px;
+                margin: 0 auto;
+                padding: 4rem 2rem;
+            }
+            .center-stage {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                min-height: 100%;
+            }
+        }
+        @media (max-width: 767px) {
+            .view-wrapper {
+                padding: 1.5rem;
+                padding-bottom: 8rem;
+            }
+            .center-stage {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: 90vh;
+            }
+        }
+
+        /* --- COMPONENTS --- */
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(20, 20, 25, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); }
+        .glass-panel { background: #0f172a; border: 1px solid #1e293b; }
+        .btn-press:active { transform: scale(0.98); }
+        
+        /* Scrollbars */
+        *::-webkit-scrollbar { width: 6px; height: 6px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        * { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+
+        /* Inputs */
+        input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #e2e8f0; margin-top: -8px; box-shadow: 0 0 10px rgba(255,255,255,0.2); transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); background: #fff; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; }
+        
+        /* Animations */
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(var(--color-rgb), 0.2); } 50% { box-shadow: 0 0 40px rgba(var(--color-rgb), 0.5); } }
+        .animate-pulse-glow { animation: pulse-glow 3s infinite; }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <!-- PC SIDEBAR -->
+    <aside id="sidebar">
+        <div class="mb-12">
+            <h1 class="text-3xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">NEUROFLOW</h1>
+            <p class="text-[10px] text-slate-500 font-mono mt-2 tracking-[0.2em] uppercase">PRO v0.9</p>
+        </div>
+        
+        <nav class="flex-1 space-y-2">
+            <button onclick="navTo('tutorial')" id="nav-tutorial" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all text-sm font-bold text-left">
+                <span class="w-6 h-6 flex items-center justify-center bg-slate-800 rounded-md text-xs">1</span> El Camino (Inicio)
+            </button>
+            <button onclick="navTo('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all text-sm font-bold text-left">
+                <span class="w-6 h-6 flex items-center justify-center bg-slate-800 rounded-md text-xs">2</span> Caja de Herramientas
+            </button>
+            <button onclick="navTo('science')" id="nav-science" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all text-sm font-bold text-left">
+                <span class="w-6 h-6 flex items-center justify-center bg-slate-800 rounded-md text-xs">3</span> Base de Conocimiento
+            </button>
+        </nav>
+
+        <div class="mt-auto bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Audio Master</span>
+                <button onclick="Audio.toggleMute()" class="text-slate-400 hover:text-white transition-colors" id="pc-mute-icon">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                </button>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.3" oninput="Audio.setVolume(this.value)">
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-container">
+        <div id="content" class="h-full w-full">
+            <!-- DYNAMIC CONTENT -->
+        </div>
+    </main>
+
+    <!-- MOBILE NAV -->
+    <div id="mobile-nav">
+        <button onclick="navTo('tutorial')" class="flex flex-col items-center p-3 text-slate-400 hover:text-white">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            <span class="text-[10px] font-bold">CAMINO</span>
+        </button>
+        <button onclick="navTo('dashboard')" class="flex flex-col items-center p-3 text-slate-400 hover:text-white">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span class="text-[10px] font-bold">TOOLS</span>
+        </button>
+        <button onclick="Audio.toggleMute()" class="flex flex-col items-center p-3 text-slate-400 hover:text-white">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+            <span class="text-[10px] font-bold">MUTE</span>
+        </button>
+    </div>
+
+    <script>
+        // --- ICONS ---
+        const I = {
+            arrowRight: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>`,
+            back: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>`,
+            play: `<svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+            pause: `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+            zap: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+            wind: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 4.5h5a5.5 5.5 0 1 1 0 11h-.5"/><path d="M6 15.5h9a4.5 4.5 0 1 0 0-9h-.5"/></svg>`,
+            eye: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`,
+            brain: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>`,
+            settings: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`,
+        };
+
+        // --- AUDIO ENGINE ---
+        const Audio = {
+            ctx: null, masterGain: null, nodes: {}, isMuted: false, userVolume: 0.3,
+            init() {
+                if (!this.ctx) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AC();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.connect(this.ctx.destination);
+                    this.updateVolume();
+                }
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                this.updateVolume();
+                const paths = document.querySelectorAll('#pc-mute-icon path, #mobile-nav button:last-child svg path');
+                paths.forEach(p => {
+                    if(this.isMuted) p.setAttribute('d', "M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2");
+                    else p.setAttribute('d', "M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z");
+                });
+            },
+            setVolume(val) { this.userVolume = parseFloat(val); this.updateVolume(); },
+            updateVolume() { if(this.masterGain) this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.userVolume, this.ctx.currentTime, 0.1); },
+            createNoise(type) {
+                const bs = this.ctx.sampleRate * 2; const b = this.ctx.createBuffer(1, bs, this.ctx.sampleRate); const d = b.getChannelData(0);
+                if(type==='brown') { let l=0; for(let i=0;i<bs;i++) { const w=Math.random()*2-1; d[i]=(l+(0.02*w))/1.02; l=d[i]; d[i]*=3.5; } } 
+                else { for(let i=0;i<bs;i++) d[i]=Math.random()*2-1; }
+                const n = this.ctx.createBufferSource(); n.buffer=b; n.loop=true; return n;
+            },
+            startBg(type) {
+                this.init(); this.stopBg();
+                if(type === 'none') return;
+                const g = this.ctx.createGain(); g.connect(this.masterGain); g.gain.value = 0;
+                let s;
+                if(type==='brown') { s = this.createNoise('brown'); s.connect(g); }
+                else if(type==='40hz') {
+                    const osc = this.ctx.createOscillator(); osc.frequency.value=200;
+                    const amp = this.ctx.createGain();
+                    const lfo = this.ctx.createOscillator(); lfo.frequency.value=40;
+                    const lfoG = this.ctx.createGain(); lfoG.gain.value=1000;
+                    lfo.connect(lfoG); osc.connect(amp); lfo.connect(amp.gain); amp.connect(g); lfo.start(); s=osc;
+                }
+                s.start(); g.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 2);
+                this.nodes.bg = s; this.nodes.bgGain = g;
+            },
+            stopBg() { if(this.nodes.bg) { try{this.nodes.bg.stop(); this.nodes.bg=null;}catch(e){} } },
+            startBreath() {
+                this.init(); if(this.nodes.breath) return;
+                const s = this.createNoise('white'); const f = this.ctx.createBiquadFilter(); f.type='lowpass'; f.Q.value=1;
+                const g = this.ctx.createGain(); s.connect(f); f.connect(g); g.connect(this.masterGain);
+                s.start(); this.nodes.breath = s; this.nodes.breathFilter = f; this.nodes.breathGain = g;
+            },
+            modulateBreath(val, dur) {
+                if(!this.nodes.breath) this.startBreath();
+                const t = this.ctx.currentTime;
+                const vStr = String(val);
+                // Higher freq for inhale, lower for exhale
+                const fT = vStr.startsWith('in') ? 1000 : 100; 
+                const vT = vStr.startsWith('in') ? 0.5 : 0.1;
+                this.nodes.breathFilter.frequency.setTargetAtTime(fT, t, dur/3);
+                this.nodes.breathGain.gain.setTargetAtTime(vT, t, dur/3);
+            },
+            stopBreath() { if(this.nodes.breath) { this.nodes.breath.stop(); this.nodes.breath=null; } },
+            playBeep() {
+                this.init(); const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                o.connect(g); g.connect(this.masterGain); o.frequency.value=440; g.gain.value=0.1;
+                o.start(); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime+0.3); o.stop(this.ctx.currentTime+0.3);
+            }
+        };
+
+        // --- STATE ---
+        const State = {
+            view: 'tutorial',
+            config: {
+                active: { limit: 30, inhale: 1.5, hold1: 0, exhale: 1.0, hold2: 0.5, name: 'Activación' },
+                calm: { limit: 15, inhale: 2, hold1: 0, exhale: 6, hold2: 1, name: 'Calma Profunda' },
+                focus: { work: 90, rest: 20, audio: 'brown' },
+                gaze: { duration: 45 }
+            },
+            custom: { limit: 20, inhale: 4, hold1: 4, exhale: 4, hold2: 4, name: 'Box Breathing' },
+            counters: { breath: 0 }, timer: { total: 0 }, isRunning: false, loopRef: null
+        };
+
+        const Utils = {
+            fmtTime: (s) => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`,
+            calcTotal: (cfg, type) => {
+                let cycle = cfg.inhale + cfg.hold1 + cfg.exhale + cfg.hold2;
+                if(type==='calm') cycle += 1.0; 
+                return Math.round(cycle * cfg.limit);
+            }
+        };
+
+        // --- NAVIGATION ---
+        function navTo(view) {
+            State.view = view;
+            document.querySelectorAll('aside nav button').forEach(b => b.classList.remove('bg-white/10','text-white'));
+            const activeBtn = document.getElementById(`nav-${view}`);
+            if(activeBtn) activeBtn.classList.add('bg-white/10','text-white');
+            render();
+        }
+
+        function openConfig(type) {
+            State.currentRoutine = type;
+            State.view = 'config';
+            render();
+        }
+
+        // --- RENDER ---
+        function render() {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            if(State.view === 'tutorial') renderTutorial(content);
+            else if(State.view === 'dashboard') renderDashboard(content);
+            else if(State.view === 'science') renderScience(content);
+            else if(State.view === 'config') renderConfig(content);
+            else if(State.view === 'active_session') renderActiveSession(content);
+        }
+
+        // 1. TUTORIAL
+        function renderTutorial(container) {
+            container.innerHTML = `
+                <div class="view-wrapper animate-fade">
+                    <div class="mb-10">
+                        <h1 class="text-4xl font-black text-white mb-2">EL CAMINO</h1>
+                        <p class="text-slate-500 text-sm">Sigue este flujo para entrar en zona.</p>
+                    </div>
+                    <div class="relative border-l-2 border-slate-800 ml-4 md:ml-6 space-y-12 pb-12">
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]"></div>
+                            <div class="glass p-6 rounded-xl border-l-4 border-cyan-500">
+                                <span class="text-cyan-400 font-bold text-xs uppercase tracking-wider mb-1 block">Paso 1: Ojos (1-2 min)</span>
+                                <h2 class="text-2xl font-bold text-white mb-2">Enfoque Visual</h2>
+                                <p class="text-sm text-slate-400 mb-4 leading-relaxed">Calibra tu atención suprimiendo distracciones visuales.</p>
+                                <button onclick="openConfig('gaze')" class="px-6 py-3 bg-cyan-900/40 hover:bg-cyan-900/60 border border-cyan-500/30 text-cyan-400 rounded-lg font-bold text-sm transition-all flex items-center gap-2">Ir a Calibrar ${I.arrowRight}</button>
+                            </div>
+                        </div>
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+                            <div class="glass p-6 rounded-xl border-l-4 border-red-500">
+                                <span class="text-red-400 font-bold text-xs uppercase tracking-wider mb-1 block">Paso 2: Pulmones (2 min)</span>
+                                <h2 class="text-2xl font-bold text-white mb-2">Activación</h2>
+                                <p class="text-sm text-slate-400 mb-4 leading-relaxed">Rompe la inercia con adrenalina natural.</p>
+                                <button onclick="openConfig('active')" class="px-6 py-3 bg-red-900/40 hover:bg-red-900/60 border border-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all flex items-center gap-2">Ir a Activar ${I.arrowRight}</button>
+                            </div>
+                        </div>
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                            <div class="glass p-6 rounded-xl border-l-4 border-emerald-500">
+                                <span class="text-emerald-400 font-bold text-xs uppercase tracking-wider mb-1 block">Paso 3: Mente (90 min)</span>
+                                <h2 class="text-2xl font-bold text-white mb-2">Trabajo Profundo</h2>
+                                <p class="text-sm text-slate-400 mb-4 leading-relaxed">Bloque de trabajo con aislamiento auditivo.</p>
+                                <button onclick="openConfig('focus')" class="px-6 py-3 bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-400 rounded-lg font-bold text-sm transition-all flex items-center gap-2">Configurar Bloque ${I.arrowRight}</button>
+                            </div>
+                        </div>
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                            <div class="glass p-6 rounded-xl border-l-4 border-blue-500">
+                                <span class="text-blue-400 font-bold text-xs uppercase tracking-wider mb-1 block">Paso 4: Recuperación (5 min)</span>
+                                <h2 class="text-2xl font-bold text-white mb-2">Calma Profunda</h2>
+                                <p class="text-sm text-slate-400 mb-4 leading-relaxed">Baja el estrés y repone energía.</p>
+                                <button onclick="openConfig('calm')" class="px-6 py-3 bg-blue-900/40 hover:bg-blue-900/60 border border-blue-500/30 text-blue-400 rounded-lg font-bold text-sm transition-all flex items-center gap-2">Ir a Recuperar ${I.arrowRight}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. DASHBOARD
+        function renderDashboard(container) {
+            container.innerHTML = `
+                <div class="view-wrapper animate-fade">
+                    <h1 class="text-3xl font-black text-white mb-8">Caja de Herramientas</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div onclick="openConfig('gaze')" class="glass p-6 rounded-xl hover:bg-white/5 cursor-pointer transition-all border-l-4 border-cyan-500">
+                            <div class="flex justify-between mb-4 text-cyan-400">${I.eye}</div>
+                            <h3 class="text-xl font-bold text-white">1. Enfoque Visual</h3>
+                            <p class="text-sm text-slate-400 mt-2">Calibración atencional.</p>
+                        </div>
+                        <div onclick="openConfig('active')" class="glass p-6 rounded-xl hover:bg-white/5 cursor-pointer transition-all border-l-4 border-red-500">
+                            <div class="flex justify-between mb-4 text-red-400">${I.zap}</div>
+                            <h3 class="text-xl font-bold text-white">2. Activación</h3>
+                            <p class="text-sm text-slate-400 mt-2">Energía inmediata.</p>
+                        </div>
+                        <div onclick="openConfig('focus')" class="glass p-6 rounded-xl hover:bg-white/5 cursor-pointer transition-all border-l-4 border-emerald-500">
+                            <div class="flex justify-between mb-4 text-emerald-400">${I.brain}</div>
+                            <h3 class="text-xl font-bold text-white">3. Bloque de Trabajo</h3>
+                            <p class="text-sm text-slate-400 mt-2">Timer Ultradiano.</p>
+                        </div>
+                        <div onclick="openConfig('calm')" class="glass p-6 rounded-xl hover:bg-white/5 cursor-pointer transition-all border-l-4 border-blue-500">
+                            <div class="flex justify-between mb-4 text-blue-400">${I.wind}</div>
+                            <h3 class="text-xl font-bold text-white">4. Calma Profunda</h3>
+                            <p class="text-sm text-slate-400 mt-2">Reducción de ansiedad.</p>
+                        </div>
+                        <div onclick="openConfig('custom')" class="glass p-6 rounded-xl hover:bg-white/5 cursor-pointer transition-all border-l-4 border-purple-500 md:col-span-2">
+                            <div class="flex justify-between mb-4 text-purple-400">${I.settings}</div>
+                            <h3 class="text-xl font-bold text-white">Laboratorio</h3>
+                            <p class="text-sm text-slate-400 mt-2">Ajustes manuales y presets.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. SCIENCE
+        function renderScience(container) {
+            container.innerHTML = `
+                <div class="view-wrapper animate-fade">
+                    <h1 class="text-3xl font-black text-white mb-8">Base de Conocimiento</h1>
+                    <div class="space-y-6 max-w-2xl">
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-lg font-bold text-cyan-400 mb-2">¿Por qué mirar un punto fijo?</h3>
+                            <p class="text-sm text-slate-300 leading-relaxed">Tus ojos son una extensión de tu cerebro. Al fijar la mirada ("Gaze") y suprimir el parpadeo, reduces el "ruido" visual. Esto libera <strong>Noradrenalina</strong> en el cerebro, el químico de la atención sostenida.</p>
+                        </div>
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-lg font-bold text-red-400 mb-2">¿Por qué respirar rápido?</h3>
+                            <p class="text-sm text-slate-300 leading-relaxed">Al respirar muy rápido, eliminas CO2. Esto vuelve tu sangre alcalina y causa una pequeña constricción. Tu cuerpo libera <strong>Adrenalina</strong>. Úsalo para despertar.</p>
+                        </div>
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-lg font-bold text-blue-400 mb-2">El Freno Vagal</h3>
+                            <p class="text-sm text-slate-300 leading-relaxed">Cuando exhalas, el diafragma baja y el corazón late más lento. Hacer exhalaciones el doble de largas que las inhalaciones activa el freno (Sistema Parasimpático).</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 4. CONFIGURATION
+        function renderConfig(container) {
+            const type = State.currentRoutine;
+            const cfg = type === 'custom' ? State.custom : State.config[type];
+            const goBack = `<button onclick="navTo('dashboard')" class="text-slate-400 hover:text-white flex items-center gap-2 mb-6 font-bold text-sm">${I.back} Volver</button>`;
+            let body = '';
+
+            if(type === 'custom') {
+                body = `
+                    <h2 class="text-3xl font-black text-white mb-8">Laboratorio</h2>
+                    <div class="max-w-3xl mx-auto space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <button onclick="applyPreset('box')" class="p-4 bg-slate-800 border border-slate-700 hover:border-purple-500 rounded-xl text-left transition-all">
+                                <div class="font-bold text-purple-400 text-sm mb-1">BOX (4-4-4-4)</div>
+                                <p class="text-[10px] text-slate-400">Calma táctica.</p>
+                            </button>
+                             <button onclick="applyPreset('relax')" class="p-4 bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-xl text-left transition-all">
+                                <div class="font-bold text-blue-400 text-sm mb-1">RELAX (4-7-8)</div>
+                                <p class="text-[10px] text-slate-400">Sedación.</p>
+                            </button>
+                             <button onclick="applyPreset('coherent')" class="p-4 bg-slate-800 border border-slate-700 hover:border-emerald-500 rounded-xl text-left transition-all">
+                                <div class="font-bold text-emerald-400 text-sm mb-1">COHERENCIA</div>
+                                <p class="text-[10px] text-slate-400">Balance (HRV).</p>
+                            </button>
+                        </div>
+                        
+                        <div class="glass p-6 rounded-xl mb-4 border border-slate-700 bg-black/40">
+                            <h4 class="text-purple-400 text-xs font-bold uppercase mb-2">Guía de Repeticiones</h4>
+                            <ul class="text-xs text-slate-400 space-y-1">
+                                <li><strong>4-10 ciclos:</strong> Regulación rápida (ej. antes de una reunión).</li>
+                                <li><strong>20+ ciclos:</strong> Cambio de estado profundo (ej. para dormir o meditar).</li>
+                            </ul>
+                        </div>
+
+                        <div class="glass p-6 rounded-xl">
+                             <div class="grid grid-cols-4 gap-4 text-center mb-6">
+                                <div><label class="text-[10px] text-slate-500 font-bold block mb-2">INHALAR</label><input type="number" class="bg-black border border-slate-700 rounded-lg w-full text-center text-white p-2" value="${State.custom.inhale}" onchange="updateCustom('inhale', this.value)"></div>
+                                <div><label class="text-[10px] text-slate-500 font-bold block mb-2">RETENER</label><input type="number" class="bg-black border border-slate-700 rounded-lg w-full text-center text-white p-2" value="${State.custom.hold1}" onchange="updateCustom('hold1', this.value)"></div>
+                                <div><label class="text-[10px] text-slate-500 font-bold block mb-2">EXHALAR</label><input type="number" class="bg-black border border-slate-700 rounded-lg w-full text-center text-white p-2" value="${State.custom.exhale}" onchange="updateCustom('exhale', this.value)"></div>
+                                <div><label class="text-[10px] text-slate-500 font-bold block mb-2">VACÍO</label><input type="number" class="bg-black border border-slate-700 rounded-lg w-full text-center text-white p-2" value="${State.custom.hold2}" onchange="updateCustom('hold2', this.value)"></div>
+                            </div>
+                             <div class="flex justify-between items-center border-t border-slate-700 pt-4">
+                                <div class="text-left">
+                                    <div class="text-xs text-slate-500 font-bold uppercase">Repeticiones</div>
+                                    <input type="range" min="5" max="100" step="1" value="${State.custom.limit}" class="w-32" oninput="updateCustom('limit', this.value); document.getElementById('custom-lim').innerText=this.value">
+                                    <span class="text-white font-mono ml-2" id="custom-lim">${State.custom.limit}</span>
+                                </div>
+                                <button onclick="startSession('custom')" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-all">INICIAR</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'calm') {
+                 body = `
+                    <h2 class="text-3xl font-black text-white mb-2">Configurar: Calma</h2>
+                    <p class="text-slate-500 mb-8">Suspiro Fisiológico (Doble Inhalación).</p>
+                    <div class="glass p-8 rounded-2xl max-w-lg mx-auto">
+                        <div class="text-center mb-8">
+                            <span class="text-6xl font-black text-blue-400" id="val-calm">${cfg.limit}</span>
+                            <span class="text-sm text-slate-500 font-mono uppercase tracking-widest block mt-2">Repeticiones</span>
+                            <div class="text-xs text-slate-400 mt-2">Tiempo aprox: <span id="calm-time">${Utils.fmtTime(Utils.calcTotal(cfg, 'calm'))}</span></div>
+                        </div>
+                        <input type="range" min="5" max="30" step="1" value="${cfg.limit}" 
+                            oninput="updateCfg('${type}','limit',this.value); document.getElementById('val-calm').innerText=this.value; document.getElementById('calm-time').innerText=Utils.fmtTime(Utils.calcTotal(State.config.calm, 'calm'))">
+                        <div class="mt-8 text-left bg-black/20 p-4 rounded-lg border border-white/5">
+                            <h4 class="text-blue-400 text-xs font-bold uppercase mb-2">Guía de Ciclos</h4>
+                            <ul class="text-xs text-slate-400 space-y-2">
+                                <li><strong>5 reps:</strong> Alivio rápido (S.O.S).</li>
+                                <li><strong>15 reps (Recomendado):</strong> Reset completo del sistema nervioso (aprox. 3 min).</li>
+                            </ul>
+                        </div>
+                        <button onclick="startSession('calm')" class="mt-8 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/50 transition-all">INICIAR SESIÓN</button>
+                    </div>
+                `;
+            } else if (type === 'active') {
+                 body = `
+                    <h2 class="text-3xl font-black text-white mb-2">Configurar: Activación</h2>
+                    <p class="text-slate-500 mb-8">Hiperventilación controlada.</p>
+                    <div class="glass p-8 rounded-2xl max-w-lg mx-auto">
+                        <div class="text-center mb-8">
+                            <span class="text-6xl font-black text-red-400" id="val-active">${cfg.limit}</span>
+                            <span class="text-sm text-slate-500 font-mono uppercase tracking-widest block mt-2">Respiraciones por Ronda</span>
+                        </div>
+                        <input type="range" min="10" max="60" step="5" value="${cfg.limit}" 
+                            oninput="updateCfg('${type}','limit',this.value); document.getElementById('val-active').innerText=this.value">
+                        <div class="mt-8 text-left bg-black/20 p-4 rounded-lg border border-white/5">
+                            <h4 class="text-red-400 text-xs font-bold uppercase mb-2">Guía de Intensidad</h4>
+                            <ul class="text-xs text-slate-400 space-y-2">
+                                <li><strong>10-20:</strong> Calentamiento ligero.</li>
+                                <li><strong>30-40 (Recomendado):</strong> Dosis efectiva para alcalosis y adrenalina.</li>
+                                <li><strong>50+:</strong> Estado alterado intenso.</li>
+                            </ul>
+                        </div>
+                        <button onclick="startSession('active')" class="mt-8 w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/50 transition-all">INICIAR SESIÓN</button>
+                    </div>
+                `;
+            } else if (type === 'gaze') {
+                 body = `
+                    <h2 class="text-3xl font-black text-white mb-2">Configurar: Enfoque Visual</h2>
+                    <p class="text-slate-500 mb-8">Calibración estática.</p>
+                    <div class="glass p-8 rounded-2xl max-w-lg mx-auto text-center">
+                        <div class="mb-8">
+                            <span class="text-6xl font-black text-cyan-400" id="val-gaze">${cfg.duration}</span>
+                            <span class="text-sm text-slate-500 font-mono uppercase tracking-widest block mt-2">Segundos</span>
+                        </div>
+                        <input type="range" min="15" max="120" step="15" value="${cfg.duration}" 
+                            oninput="updateCfg('gaze','duration',this.value);document.getElementById('val-gaze').innerText=this.value">
+                        <div class="mt-8 text-left bg-black/20 p-4 rounded-lg border border-white/5">
+                            <h4 class="text-cyan-400 text-xs font-bold uppercase mb-2">Guía de Tiempo</h4>
+                            <ul class="text-xs text-slate-400 space-y-2">
+                                <li><strong>15s:</strong> Reset rápido.</li>
+                                <li><strong>45s (Recomendado):</strong> Calibración estándar.</li>
+                                <li><strong>60s+:</strong> Entrenamiento de resistencia.</li>
+                            </ul>
+                        </div>
+                        <button onclick="startSession('gaze')" class="mt-8 w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-900/50 transition-all">INICIAR CALIBRACIÓN</button>
+                    </div>
+                `;
+            } else if (type === 'focus') {
+                body = `
+                    <h2 class="text-3xl font-black text-white mb-2">Configurar: Bloque</h2>
+                    <p class="text-slate-500 mb-8">Ciclo Ultradiano.</p>
+                    <div class="glass p-8 rounded-2xl max-w-2xl mx-auto">
+                        <div class="grid grid-cols-3 gap-4 mb-10">
+                            <button onclick="setFocusAudio('brown')" class="p-4 rounded-xl border transition-all ${cfg.audio==='brown'?'border-emerald-500 bg-emerald-500/10 text-emerald-400':'border-slate-700 bg-slate-800 text-slate-400'}">
+                                <div class="font-bold text-sm mb-1">Ruido Marrón</div>
+                                <div class="text-[10px]">Foco Profundo</div>
+                            </button>
+                            <button onclick="setFocusAudio('40hz')" class="p-4 rounded-xl border transition-all ${cfg.audio==='40hz'?'border-blue-500 bg-blue-500/10 text-blue-400':'border-slate-700 bg-slate-800 text-slate-400'}">
+                                <div class="font-bold text-sm mb-1">Gamma 40Hz</div>
+                                <div class="text-[10px]">Estudio Activo</div>
+                            </button>
+                            <button onclick="setFocusAudio('none')" class="p-4 rounded-xl border transition-all ${cfg.audio==='none'?'border-white bg-white/10 text-white':'border-slate-700 bg-slate-800 text-slate-400'}">
+                                <div class="font-bold text-sm mb-1">Silencio</div>
+                                <div class="text-[10px]">Lectura</div>
+                            </button>
+                        </div>
+                        <div class="space-y-8 mb-10">
+                             <div><label class="flex justify-between text-sm font-bold text-emerald-400 mb-3">Bloque (min) <span class="text-white text-lg">${cfg.work}</span></label><input type="range" min="15" max="120" step="5" value="${cfg.work}" oninput="updateCfg('focus', 'work', this.value); renderConfig(document.getElementById('content'))"></div>
+                             <div><label class="flex justify-between text-sm font-bold text-blue-400 mb-3">Descanso (min) <span class="text-white text-lg">${cfg.rest}</span></label><input type="range" min="5" max="45" step="5" value="${cfg.rest}" oninput="updateCfg('focus', 'rest', this.value); renderConfig(document.getElementById('content'))"></div>
+                        </div>
+                        <button onclick="startSession('focus')" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/50 transition-all">COMENZAR BLOQUE</button>
+                    </div>
+                `;
+            }
+            container.innerHTML = `<div class="view-wrapper animate-fade">${goBack}${body}</div>`;
+        }
+
+        // 5. ACTIVE SESSION RUNNER
+        function renderActiveSession(container) {
+            const type = State.currentRoutine;
+            if(type === 'gaze') {
+                const cfg = State.config.gaze;
+                container.innerHTML = `
+                    <div class="center-stage cursor-none bg-black relative w-full h-full">
+                         <button onclick="stopSession()" class="absolute top-8 right-8 text-slate-600 hover:text-white p-4 z-50"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                         <div class="relative flex items-center justify-center">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_20px_cyan] z-10"></div>
+                            <div class="absolute w-96 h-96 border border-cyan-900/10 rounded-full animate-pulse-glow"></div>
+                        </div>
+                        <div id="session-timer" class="mt-24 text-2xl font-mono font-bold text-cyan-900 select-none">${cfg.duration}</div>
+                        <div id="gaze-instruction" class="absolute bottom-10 text-slate-800 text-sm animate-pulse">No parpadees</div>
+                    </div>
+                `;
+                runGazeSession();
+                return;
+            }
+            if(['active','calm','custom'].includes(type)) {
+                const cfg = type === 'custom' ? State.custom : State.config[type];
+                const color = type==='active'?'#ef4444':(type==='calm'?'#3b82f6':'#a855f7');
+                container.innerHTML = `
+                    <div class="center-stage relative w-full h-full">
+                        <button onclick="stopSession()" class="absolute top-8 left-8 text-slate-500 hover:text-white flex items-center gap-2 font-bold text-sm"><span class="text-xl">✕</span> SALIR</button>
+                        <div class="text-center flex flex-col items-center">
+                            <div class="text-8xl font-black text-white mb-2 font-mono tracking-tighter" id="breath-counter">0</div>
+                            <div class="text-sm text-slate-500 font-bold uppercase tracking-[0.3em] mb-16">DE ${cfg.limit} CICLOS</div>
+                            <div class="relative w-80 h-80 flex items-center justify-center">
+                                <div class="absolute inset-0 rounded-full opacity-20" style="background-color: ${color}; filter: blur(40px)"></div>
+                                <div id="breath-visual" class="w-48 h-48 rounded-full border-4 flex items-center justify-center transition-all will-change-transform bg-slate-900 z-10" 
+                                     style="border-color:${color}; box-shadow: 0 0 30px ${color}20">
+                                    <span id="breath-text" class="text-2xl font-bold text-white tracking-widest">LISTO</span>
+                                </div>
+                            </div>
+                            <button id="control-btn" onclick="toggleBreath()" class="mt-16 px-10 py-4 bg-white/10 border border-white/20 rounded-full text-white font-bold hover:bg-white/20 transition-all flex items-center gap-3">${I.play} INICIAR</button>
+                        </div>
+                    </div>
+                `;
+                State.counters.breath = 0;
+                return;
+            }
+            if(type === 'focus') {
+                const cfg = State.config.focus;
+                const audioLabel = cfg.audio === 'brown' ? 'RUIDO MARRÓN' : (cfg.audio === '40hz' ? 'GAMMA 40HZ' : 'SILENCIO');
+                container.innerHTML = `
+                     <div class="center-stage relative w-full h-full overflow-hidden">
+                        <div id="focus-bg" class="absolute inset-0 bg-emerald-900/10 transition-colors duration-1000 z-0"></div>
+                        <button onclick="stopSession()" class="absolute top-8 left-8 text-slate-500 hover:text-white z-20 font-bold text-sm">✕ SALIR</button>
+                        <div class="relative z-10 text-center flex flex-col items-center">
+                            <div id="focus-label" class="text-emerald-500 font-bold tracking-[0.3em] uppercase text-xs mb-8 bg-black/40 px-4 py-2 rounded-full border border-white/5 backdrop-blur">MODO TRABAJO • ${audioLabel}</div>
+                            <div id="focus-timer" class="text-[12rem] leading-none font-black text-white font-mono tracking-tighter mb-12 select-none drop-shadow-2xl">${cfg.work}:00</div>
+                            <button onclick="toggleFocusTimer()" id="focus-btn" class="w-24 h-24 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:scale-110 transition-transform">${I.play}</button>
+                            <div class="mt-16 w-64 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div id="focus-progress" class="h-full bg-emerald-500 w-0 transition-all duration-1000"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                State.timer.total = cfg.work * 60; State.timer.type = 'work';
+            }
+        }
+
+        // --- LOGIC ---
+        function updateCfg(type, key, val) { State.config[type][key] = parseInt(val); }
+        function updateCustom(key, val) { State.custom[key] = parseInt(val); renderConfig(document.getElementById('content')); } // Refresh view on manual change
+        function setFocusAudio(val) { State.config.focus.audio = val; renderConfig(document.getElementById('content')); }
+        function applyPreset(name) {
+            const c = State.custom;
+            if(name==='box') { c.inhale=4; c.hold1=4; c.exhale=4; c.hold2=4; }
+            if(name==='relax') { c.inhale=4; c.hold1=7; c.exhale=8; c.hold2=0; }
+            if(name==='coherent') { c.inhale=5.5; c.hold1=0; c.exhale=5.5; c.hold2=0; }
+            renderConfig(document.getElementById('content'));
+        }
+        function startSession(type) { State.currentRoutine = type; State.view = 'active_session'; render(); }
+        function stopSession() { clearTimeout(State.loopRef); clearInterval(State.timer.ref); State.isRunning = false; Audio.stopBg(); Audio.stopBreath(); navTo('dashboard'); }
+        
+        function runGazeSession() {
+            let t = State.config.gaze.duration;
+            const d = document.getElementById('session-timer');
+            const inst = document.getElementById('gaze-instruction');
+            setTimeout(() => { if(inst) inst.style.opacity = '0'; }, 3000);
+            State.timer.ref = setInterval(() => {
+                t--;
+                if(d) { d.innerText = t; if(t <= 5) d.classList.add('text-cyan-400'); }
+                if(t <= 0) { clearInterval(State.timer.ref); Audio.playBeep(); setTimeout(stopSession, 1000); }
+            }, 1000);
+        }
+
+        function toggleBreath() {
+            if(State.isRunning) {
+                clearTimeout(State.loopRef); State.isRunning=false;
+                Audio.modulateBreath('out', 0.1);
+                document.getElementById('control-btn').innerHTML = `${I.play} CONTINUAR`;
+            } else {
+                State.isRunning=true;
+                document.getElementById('control-btn').innerHTML = `${I.pause} PAUSA`;
+                runBreathStep('inhale');
+            }
+        }
+
+        function runBreathStep(phase) {
+            if(!State.isRunning) return;
+            const type = State.currentRoutine;
+            const cfg = type === 'custom' ? State.custom : State.config[type];
+            const circle = document.getElementById('breath-visual');
+            const msg = document.getElementById('breath-text');
+            const cnt = document.getElementById('breath-counter');
+            const isCalm = type === 'calm';
+
+            if(phase === 'inhale') {
+                if(State.counters.breath >= cfg.limit) { stopSession(); return; }
+                State.counters.breath++;
+                if(cnt) cnt.innerText = State.counters.breath;
+                msg.innerText = isCalm ? "INHALA 80%" : "INHALA";
+                if(circle) {
+                    circle.style.transitionDuration = `${cfg.inhale}s`;
+                    circle.style.transform = isCalm ? "scale(1.3)" : "scale(1.6)";
+                    circle.style.opacity = "1";
+                    circle.style.backgroundColor = "#1e293b";
+                }
+                Audio.modulateBreath('in', cfg.inhale);
+                const next = isCalm ? 'inhale2' : 'hold1';
+                State.loopRef = setTimeout(() => runBreathStep(next), cfg.inhale * 1000);
+            }
+            else if (phase === 'inhale2') { 
+                if(msg) msg.innerText = "INHALA 100%";
+                if(circle) { circle.style.transitionDuration = "0.8s"; circle.style.transform = "scale(1.8)"; }
+                Audio.modulateBreath('in', 0.8);
+                State.loopRef = setTimeout(() => runBreathStep('exhale'), 1000);
+            }
+            else if(phase === 'hold1') {
+                if(cfg.hold1 > 0) {
+                    if(msg) msg.innerText = "RETÉN";
+                    Audio.modulateBreath('hold', 0.5);
+                    State.loopRef = setTimeout(() => runBreathStep('exhale'), cfg.hold1 * 1000);
+                } else { runBreathStep('exhale'); }
+            }
+            else if(phase === 'exhale') {
+                if(msg) msg.innerText = isCalm ? "EXHALA LENTO" : "EXHALA";
+                if(circle) { circle.style.transitionDuration = `${cfg.exhale}s`; circle.style.transform = "scale(1.0)"; circle.style.opacity = "0.4"; }
+                Audio.modulateBreath('out', cfg.exhale);
+                State.loopRef = setTimeout(() => runBreathStep('hold2'), cfg.exhale * 1000);
+            }
+            else if(phase === 'hold2') {
+                if(cfg.hold2 > 0) {
+                    if(msg) msg.innerText = "VACÍO";
+                    State.loopRef = setTimeout(() => runBreathStep('inhale'), cfg.hold2 * 1000);
+                } else { runBreathStep('inhale'); }
+            }
+        }
+
+        function toggleFocusTimer() {
+            const btn = document.getElementById('focus-btn');
+            if(State.isRunning) {
+                clearInterval(State.timer.ref); State.isRunning = false; Audio.stopBg();
+                btn.innerHTML = I.play;
+                btn.classList.remove('bg-emerald-500', 'text-white'); btn.classList.add('bg-white', 'text-black');
+            } else {
+                State.isRunning = true;
+                btn.innerHTML = I.pause;
+                btn.classList.remove('bg-white', 'text-black'); btn.classList.add('bg-emerald-500', 'text-white');
+                if(State.timer.type === 'work') Audio.startBg(State.config.focus.audio);
+                State.timer.ref = setInterval(() => {
+                    State.timer.total--;
+                    const m = Math.floor(State.timer.total / 60).toString().padStart(2,'0');
+                    const s = (State.timer.total % 60).toString().padStart(2,'0');
+                    const d = document.getElementById('focus-timer');
+                    if(d) d.innerText = `${m}:${s}`;
+                    const maxTime = (State.timer.type === 'work' ? State.config.focus.work : State.config.focus.rest) * 60;
+                    const pct = 100 - ((State.timer.total / maxTime) * 100);
+                    const bar = document.getElementById('focus-progress');
+                    if(bar) bar.style.width = `${pct}%`;
+                    if(State.timer.total <= 0) switchFocusState();
+                }, 1000);
+            }
+        }
+
+        function switchFocusState() {
+            clearInterval(State.timer.ref); State.isRunning = false; Audio.stopBg(); Audio.playBeep();
+            const label = document.getElementById('focus-label');
+            const bg = document.getElementById('focus-bg');
+            const btn = document.getElementById('focus-btn');
+            if(State.timer.type === 'work') {
+                State.timer.type = 'rest';
+                State.timer.total = State.config.focus.rest * 60;
+                label.innerText = "MODO NSDR (DESCANSO)";
+                label.classList.remove('text-emerald-500'); label.classList.add('text-blue-400');
+                bg.classList.remove('bg-emerald-900/10'); bg.classList.add('bg-blue-900/10');
+                btn.innerHTML = I.play;
+                btn.classList.remove('bg-emerald-500'); btn.classList.add('bg-white', 'text-black');
+                document.getElementById('focus-timer').innerText = `${State.config.focus.rest}:00`;
+            } else { label.innerText = "SESIÓN COMPLETADA"; stopSession(); }
+        }
+
+        window.addEventListener('click', () => { if(Audio.ctx && Audio.ctx.state === 'suspended') Audio.ctx.resume(); }, {once:true});
+        navTo('tutorial'); 
+    </script>
+</body>
+</html>
